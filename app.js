@@ -49,13 +49,13 @@ const PH={};
 const app=h=>{$('#app').innerHTML=h};
 const pill=(k,v,c,t)=>`<label class=pill><input type=checkbox class=${k} value="${v}" ${c?'checked':''}><span>${t}</span></label>`;
 const tot=()=>Object.values(unread).reduce((a,b)=>a+b,0),dot=()=>tot()?` <b class=dot>${tot()}</b>`:'';
-const hdr=()=>`<header><div class=logo><i>♥</i>SoulSync</div>${me?`<div class=tabs>${[['feed','Matches'],['test','pH Test'],['chat','Chat'],['profile','Profile']].map(([v,t])=>`<a class="${view==v?'on':''}" onclick="go('${v}')">${t}${v=='chat'?dot():''}</a>`).join('')}<a onclick=out()>Log out</a></div>`:uid?'<div class=tabs><a onclick=out()>Log out</a></div>':''}</header>`;
+const hdr=()=>`<header><div class=logo><i>♥</i>SoulSync</div>${me?`<div class=tabs>${[['feed','Matches'],['test','pH Quiz'],['chat','Chat'],['profile','Profile']].map(([v,t])=>`<a class="${view==v?'on':''}" onclick="go('${v}')">${t}${v=='chat'?dot():''}</a>`).join('')}<a onclick=out()>Log out</a></div>`:uid?'<div class=tabs><a onclick=out()>Log out</a></div>':''}</header>`;
 
 // floating hearts + click burst
 for(let i=0;i<18;i++){const h=document.createElement('span');h.className='hrt';h.textContent='♥';h.style.cssText=`left:${Math.random()*100}%;font-size:${14+Math.random()*44}px;animation-duration:${9+Math.random()*12}s;animation-delay:-${Math.random()*18}s`;$('#hearts').appendChild(h)}
 function burst(x,y){for(let i=0;i<10;i++){const h=document.createElement('span');h.className='burst';h.textContent='♥';h.style.cssText=`left:${x}px;top:${y}px;--dx:${(Math.random()-.5)*180}px;--dy:${-60-Math.random()*130}px;font-size:${14+Math.random()*18}px`;document.body.appendChild(h);setTimeout(()=>h.remove(),1000)}}
 
-function go(v){clearInterval(timer);if(!me&&['feed','chat','test'].includes(v))v='profile';view=v;if(v=='test'){qi=0;S=structuredClone(me?.answers||{});W=structuredClone(me?.wants||{});NT={a:{...me?.notes?.a},p:{...me?.notes?.p}}}({auth,profile,test,feed,chat})[v]()}
+function go(v){clearInterval(timer);if(!me&&['feed','chat','test'].includes(v))v='profile';view=v;if(v=='test'){qi=-1;S=structuredClone(me?.answers||{});W=structuredClone(me?.wants||{});NT={a:{...me?.notes?.a},p:{...me?.notes?.p}}}({auth,profile,test,feed,chat})[v]()}
 async function boot(){const{data:{session}}=await db.auth.getSession();if(!session)return go('auth');uid=session.user.id;listen();
  me=(await db.from('profiles').select('*').eq('id',uid).maybeSingle()).data;go(me?'feed':'profile')}
 
@@ -78,7 +78,7 @@ function profile(){if(me)pics=[...(me.photos||(me.photo?[me.photo]:[]))];const p
  <div class="f full"><label>Your photos <small class=hint>First photo is your profile picture. Up to 5.</small></label><div class=gal id=gal>${galHTML()}</div></div>
  <div class=f><label>Aadhaar number (demo check)</label><input id=ad inputmode=numeric placeholder="12 digits, never stored"></div>
  <div class="f full"><div class=two><button class=btn onclick=loc()>Use my location (for km distance)</button><button class=btn onclick=verify()>${p.verified?'ID verified. Verify again':'Verify Aadhaar (demo)'}</button></div></div></div>
- <p id=m></p><button class="btn pri" onclick=saveProfile()>Save and find matches ♥</button>${me?'<button class=btn onclick="go(\'test\')">Take the pH test</button>':''}</div>`);$('#sc').value=p.scope||'country';fillSt(p.state)}
+ <p id=m></p><button class="btn pri" onclick=saveProfile()>Save and find matches ♥</button>${me?'<button class=btn onclick="go(\'test\')">Take the pH quiz</button>':''}</div>`);$('#sc').value=p.scope||'country';fillSt(p.state)}
 function loc(){navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{geo={lat:+p.coords.latitude.toFixed(2),lng:+p.coords.longitude.toFixed(2)};msg('Location saved, rounded to about 1 km.')},()=>msg('Location blocked. Use district, state or country instead.')):msg('Location is not supported here.')}
 const galHTML=()=>pics.map((src,i)=>`<div class=th><img src="${src}">${i==0?'<span class=badge>Profile pic</span>':`<button class=mini onclick=mk(${i})>Make profile pic</button>`}<button class="mini x" onclick=rm(${i})>✕</button></div>`).join('')+(pics.length<5?`<label class="th add">＋<span>Add photo</span><input type=file accept="image/*" hidden onchange=addPic(this)></label>`:'');
 function paint(){const g=$('#gal');if(g)g.innerHTML=galHTML();const a=$('#mypic');if(a)a.innerHTML=pics[0]?`<img src="${pics[0]}">`:esc((me?.name||$('#n')?.value||'♥')[0])}
@@ -98,7 +98,7 @@ async function saveProfile(){const f=i=>$('#'+i).value,g=[...document.querySelec
  error?msg(error.message):(await boot(),burst(innerWidth/2,innerHeight/2))}
 
 // pH test: part 1 = about you (15), part 2 = your partner (15). Pick options and/or write your own (optional).
-function test(){const pt=qi<N,d=qi%N,s=pt?(S[d]||[]):(W[d]?.ok||[]),t=NT[pt?'a':'p'][d]||'';
+function test(){if(qi<0)return app(hdr()+`<div class=hero style="padding:30px 0 0"><div class=big style="font-size:clamp(56px,12vw,96px)">♥</div></div><div class="card auth" style="text-align:center"><span class=sect>pH Quiz</span><h2>Welcome to the Personality &amp; Habits Quiz</h2><p class=hint>30 quick questions: 15 about you and 15 about the partner you want. Pick what fits and skip what doesn't.</p><button class="btn pri" onclick="qi=0;test()">Continue ♥</button></div>`);const pt=qi<N,d=qi%N,s=pt?(S[d]||[]):(W[d]?.ok||[]),t=NT[pt?'a':'p'][d]||'';
  app(hdr()+`<div class=card><span class=sect>${pt?'Part 1 · About you':'Part 2 · Your ideal partner'}</span><span class=cnt>${d+1} / ${N}</span><div class=bar><i style="width:${qi/(2*N)*100}%"></i></div>
  <h2>${(pt?ME:PA)[d]}</h2><p class=hint>${pt?'Pick all that apply.':'Pick all you would be happy with, or skip.'}</p>
  <div class=opts>${QS[d].map((x,j)=>pill('sel',j,s.includes(j),x[0])).join('')}</div>
@@ -109,7 +109,7 @@ async function step(k){const g=[...document.querySelectorAll('.sel:checked')].ma
  NT[pt?'a':'p'][d]=$('#nt').value.trim();if(pt)S[d]=g;else W[d]={ok:g,must:!!$('#mu')?.checked};
  if(k>0&&pt&&!g.length&&!NT.a[d])return msg('Pick an answer or write your own');
  if(k>0&&!pt&&W[d].must&&!g.length)return msg('Choose what you need, or untick dealbreaker');
- qi=Math.max(0,qi+k);if(qi<2*N)return test();
+ qi=Math.max(-1,qi+k);if(qi<2*N)return test();
  const wants={};for(const i in W)if(W[i].ok.length)wants[i]=W[i];
  const{error}=await db.from('profiles').update({answers:S,wants,notes:NT}).eq('id',uid);error?show(error.message):(await boot(),burst(innerWidth/2,innerHeight/3))}
 
@@ -130,7 +130,7 @@ async function feed(){app(hdr()+'<p class=c>Finding your people ♥</p>');
  const[{data:ps},{data:ls}]=await Promise.all([db.from('profiles').select('*').neq('id',uid),db.from('likes').select('*')]);
  liked=ls.filter(l=>l.from_id==uid).map(l=>l.to_id);likes=ls.filter(l=>l.to_id==uid).map(l=>l.from_id);
  const list=ps.map(p=>({p,s:fit(me,p)})).filter(x=>x.s!==-1).sort((a,b)=>(b.s??-1)-(a.s??-1)),t=!!me.answers;
- app(hdr()+`<div class="card banner"><div><h2>Matches near you ♥</h2><p>${esc(me.district)}, ${esc(me.state)} · ${t?'ranked by compatibility':'take the pH test to rank by compatibility'}</p><select id=rg onchange="setScope(this.value)">${SC}</select></div><button class="btn light" onclick="go('test')">${t?'Retake the pH test':'Take the pH test ♥'}</button></div><p id=m style="color:#fff"></p>
+ app(hdr()+`<div class="card banner"><div><h2>Matches near you ♥</h2><p>${esc(me.district)}, ${esc(me.state)} · ${t?'ranked by compatibility':'take the pH quiz to rank by compatibility'}</p><select id=rg onchange="setScope(this.value)">${SC}</select></div><button class="btn light" onclick="go('test')">${t?'Retake the pH quiz':'Take the pH quiz ♥'}</button></div><p id=m style="color:#fff"></p>
  <div class=cards>${list.map(card).join('')||'<div class="card c">No one here yet. Try a wider region above.</div>'}</div>`);$('#rg').value=me.scope||'country'}
 async function setScope(v){if(v.startsWith('km')&&me.lat==null){msg('Set your location in Profile to use km distance.');return $('#rg').value=me.scope}
  await db.from('profiles').update({scope:v}).eq('id',uid);me.scope=v;feed()}
