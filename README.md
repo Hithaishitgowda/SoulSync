@@ -75,7 +75,7 @@ Written-in answers are saved and the first one shows on your card as a quote. Th
 | Frontend | Plain HTML, CSS and JavaScript | No build step, deploys anywhere, easy to read |
 | Backend, auth, database | Supabase (Postgres, Auth, Row Level Security) | Free tier, relational data suits matching |
 | Live updates | Supabase Realtime | Chat and likes without running a server |
-| Hosting | Vercel (or Netlify) | Free static hosting |
+| Hosting | Vercel| Free static hosting |
 
 ```
  Browser (index.html + style.css + app.js)
@@ -149,13 +149,12 @@ To see chat sync live, log in as Rahul in one window and Neha in a **private win
 
 ## Monetization (built, demo checkout)
 
-| Product | What it does | Price (suggested) |
+| Product | What it does | Price |
 |---|---|---|
 | **Plus** | unlimited chats, age and match % filters, start video calls | ₹49 / week, ₹149 / month |
 | **Boost** | top of other people's feeds for 1 hour | ₹29 |
 | **Priority likes** | 5 likes that stand out and appear first in the other person's "Liked you" | ₹49 |
 
-- **"Liked you" is free for everyone.** While the network is small, the goal is more matches and conversations, so seeing who liked you is not paywalled. Priority likes still appear first.
 - **Free plan:** you can start 3 chats. Replying is always free. The limit is enforced by a database rule (`can_send`), not only in the UI.
 - **Video calls:** WebRTC, signalling over Supabase Realtime. Only Plus users can start a call, only after a mutual like, the other person must accept, and calls are never recorded. Uses a free Google STUN server plus an optional free TURN relay from Metered (20 GB/month) so calls connect on strict networks.
 - **Prepaid passes, not subscriptions:** no auto-renewal, which avoids recurring-payment and hard-to-cancel complaints.
