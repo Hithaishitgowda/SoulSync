@@ -48,7 +48,7 @@ const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>
 const age=d=>Math.floor((Date.now()-new Date(d))/31557600000),msg=t=>{const m=$('#m');if(m)m.textContent=t};
 let ch,unread={},names={},me,uid,view,qi=0,S={},W={},NT={a:{},p:{}},pics=[],ok,geo,peer,timer,liked=[],likes=[];
 const PH={};
-const GRIEVANCE='grievance@your-domain.com';
+const GRIEVANCE='hithaishigowda849@gmail.com';
 const FOOT=`<footer class=foot><a href=legal.html#terms target=_blank>Terms</a> · <a href=legal.html#privacy target=_blank>Privacy</a> · <a href=legal.html#grievance target=_blank>Grievance Officer</a> · <a href="mailto:${GRIEVANCE}">${GRIEVANCE}</a></footer>`;
 const app=h=>{$('#app').innerHTML=h+FOOT};
 const pill=(k,v,c,t)=>`<label class=pill><input type=checkbox class=${k} value="${v}" ${c?'checked':''}><span>${t}</span></label>`;
