@@ -135,7 +135,7 @@ async function setScope(v){if(v.startsWith('km')&&me.lat==null){msg('Set your lo
 function card({p,s}){PH[p.id]=p.photos;const my=me.answers||{},wn=me.wants||{},tg=[];
  if(p.answers)QS.forEach((o,d)=>(p.answers[d]||[]).forEach(v=>{if((wn[d]?.ok||[]).includes(v)||(my[d]||[]).includes(v))tg.push(o[v][1])}));
  const L=liked.includes(p.id),where=me.lat!=null&&p.lat!=null?Math.round(km(me,p))+' km away':esc(p.district||p.state||''),q=Object.values(p.notes?.a||{}).find(Boolean);
- return `<div class="card mc"><div class=ph>${bst(p)?'<span class=bst>⚡ Boosted</span>':''}${(p.photos&&p.photos[0])||p.photo?`<img src="${(p.photos&&p.photos[0])||p.photo}" onclick="cyc(this,'${p.id}')">${p.photos&&p.photos.length>1?`<span class=pn>1/${p.photos.length}</span>`:''}`:`<div class=av>${esc(p.name[0])}</div>`}<div class=ring style="--s:${s||0};--c:hsl(${(s||0)*1.1},70%,35%)"><b>${s==null?'♥':s+'%'}</b></div></div>
+ return `<div class="card mc"><div class=ph>${bst(p)?'<span class=bst>⚡ Boosted</span>':PRI.has(p.id)?'<span class=bst>⭐ Priority like</span>':''}${(p.photos&&p.photos[0])||p.photo?`<img src="${(p.photos&&p.photos[0])||p.photo}" onclick="cyc(this,'${p.id}')">${p.photos&&p.photos.length>1?`<span class=pn>1/${p.photos.length}</span>`:''}`:`<div class=av>${esc(p.name[0])}</div>`}<div class=ring style="--s:${s||0};--c:hsl(${(s||0)*1.1},70%,35%)"><b>${s==null?'♥':s+'%'}</b></div></div>
  <div class=bd><h3>${esc(p.name)}, ${age(p.dob)}</h3><p class=sub>${where}${p.verified?' · ID verified':''}</p>${q?`<p class=quote>“${esc(q)}”</p>`:''}<div>${[...new Set(tg)].slice(0,6).map(t=>`<span class=tag>${t}</span>`).join('')}</div>
  ${L&&likes.includes(p.id)?`<button class="btn pri" onclick="peer='${p.id}';go('chat')">It's a match ♥ Chat</button>`:L?'<p class=sub>Liked ♥ Waiting for them.</p>':`<div class=two><button class="btn pri" onclick="like('${p.id}',event)">♥ Like</button><button class=btn onclick="like('${p.id}',event,1)">⭐ Priority</button></div>`}<p class=lnk><a onclick="reportU('${p.id}')">Report</a> · <a onclick="blockU('${p.id}')">Block</a></p></div></div>`}
 
@@ -183,20 +183,21 @@ async function like(id,e,pri){burst(e.clientX,e.clientY);
  else{const{error}=await db.from('likes').insert({from_id:uid,to_id:id});if(error)return toast('Could not send: '+error.message)}
  setTimeout(()=>go(view),500)}
 
+let PRI=new Set();
 async function likesPage(){app(hdr()+'<p class=c>Loading…</p>');
  const[{data:ls},{data:bl}]=await Promise.all([db.from('likes').select('*'),db.from('blocks').select('*')]);
  const bk=new Set(bl.map(b=>b.from_id==uid?b.to_id:b.from_id)),mine=new Set(ls.filter(l=>l.from_id==uid).map(l=>l.to_id));
  const inc=ls.filter(l=>l.to_id==uid&&!mine.has(l.from_id)&&!bk.has(l.from_id)).sort((a,b)=>(b.priority?1:0)-(a.priority?1:0));
- const ps=inc.length?(await db.from('profiles').select('*').in('id',inc.map(l=>l.from_id))).data:[],pm=Object.fromEntries(ps.map(p=>[p.id,p])),pl=isPlus();
- liked=[...mine];likes=ls.filter(l=>l.to_id==uid).map(l=>l.from_id);
- app(hdr()+`<div class="card banner"><div><h2>Liked you ♥</h2><p>${inc.length} waiting${pl?'':'. Get Plus to see who.'}</p></div>${pl?'':'<button class="btn light" onclick="go(\'plus\')">⭐ Get Plus</button>'}</div>
- <div class=cards>${inc.map(l=>{const p=pm[l.from_id];if(!p)return'';return pl?card({p,s:fit(me,p)}):`<div class="card mc locked"><div class=ph>${p.photo?`<img src="${p.photo}">`:'<div class=av>?</div>'}</div><div class=bd><h3>${l.priority?'⭐ Priority like':'♥ Someone liked you'}</h3><p class=sub>Upgrade to Plus to see who.</p></div></div>`}).join('')||'<div class="card c">No pending likes yet.</div>'}</div>`)}
+ const ps=inc.length?(await db.from('profiles').select('*').in('id',inc.map(l=>l.from_id))).data:[],pm=Object.fromEntries(ps.map(p=>[p.id,p]));
+ PRI=new Set(inc.filter(l=>l.priority).map(l=>l.from_id));liked=[...mine];likes=ls.filter(l=>l.to_id==uid).map(l=>l.from_id);
+ app(hdr()+`<div class="card banner"><div><h2>Liked you ♥</h2><p>${inc.length} waiting for your reply · ⭐ priority likes come first</p></div></div>
+ <div class=cards>${inc.map(l=>pm[l.from_id]?card({p:pm[l.from_id],s:fit(me,pm[l.from_id])}):'').join('')||'<div class="card c">No pending likes yet.</div>'}</div>`)}
 
 // Real checkout: Razorpay. The server creates the order and verifies the payment (supabase/functions/razorpay).
 const PROD={w:'plus_week',m:'plus_month',b:'boost',p:'likes5'},PNAME={w:'Plus · 1 week',m:'Plus · 1 month',b:'Boost · 1 hour',p:'5 priority likes'};
 function plusPage(){const pl=isPlus();
- app(hdr()+`<div class=card><h2>⭐ SoulSync Plus</h2><p class=hint>${pl?'Plus is active until '+new Date(me.plus_until).toLocaleDateString():'Unlock more chats, see who liked you, extra filters and video calls.'}</p>
- <ul class=perks><li>Unlimited chats (free: 3 you start, replies always free)</li><li>See everyone who liked you</li><li>Age and match % filters</li><li>Start video calls</li></ul>
+ app(hdr()+`<div class=card><h2>⭐ SoulSync Plus</h2><p class=hint>${pl?'Plus is active until '+new Date(me.plus_until).toLocaleDateString():'Unlock unlimited chats, extra filters, boosts and video calls.'}</p>
+ <ul class=perks><li>Unlimited chats (free: 3 you start, replies always free)</li><li>Age and match % filters</li><li>Start video calls</li></ul>
  <div class=grid><div class=plan><h3>1 week</h3><b>₹49</b><button class="btn pri" onclick="pay('w')">Get Plus</button></div><div class=plan><h3>1 month</h3><b>₹149</b><button class="btn pri" onclick="pay('m')">Get Plus</button></div>
  <div class=plan><h3>⚡ Boost</h3><b>₹29</b><small>Top of feeds for 1 hour${bst(me)?' (active now)':''}</small><button class=btn onclick="pay('b')">Boost me</button></div>
  <div class=plan><h3>⭐ Priority likes</h3><b>₹49</b><small>5 likes that stand out. You have ${me.credits||0}.</small><button class=btn onclick="pay('p')">Buy 5</button></div></div>
