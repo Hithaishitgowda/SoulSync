@@ -63,9 +63,27 @@ function go(v){clearInterval(timer);if(!me&&['feed','chat','test','likes','plus'
 async function boot(){const{data:{session}}=await db.auth.getSession();if(!session)return go('auth');uid=session.user.id;listen();initCalls();
  me=(await db.from('profiles').select('*').eq('id',uid).maybeSingle()).data;go(me?'feed':'profile')}
 
-function auth(){app(`<div class=hero><div class=big>♥</div><h1>SoulSync</h1><p>Where habits meet hearts</p></div><div class="card auth"><h2>Welcome</h2><p class=hint>Log in, or create an account to find people who fit your life.</p><div class=f><input id=e type=email placeholder="Email"></div><div class=f style="margin-top:12px"><input id=p type=password placeholder="Password (6+ characters)"></div><label class=chk><input type=checkbox id=ag>I am 18 or older and agree to the <a href=legal.html#terms target=_blank>Terms</a> and <a href=legal.html#privacy target=_blank>Privacy Policy</a> (needed to create an account)</label><p id=m></p><button class="btn pri" onclick="sign('in')">Log in ♥</button><button class=btn onclick="sign('up')">Create account</button></div>`)}
-async function sign(k){if(k=='up'&&!$('#ag').checked)return msg('Please confirm you are 18+ and accept the Terms and Privacy Policy.');const c={email:$('#e').value,password:$('#p').value};const r=k=='up'?await db.auth.signUp(c):await db.auth.signInWithPassword(c);r.error?msg(r.error.message):boot()}
-async function out(){closeCalls();if(ch){db.removeChannel(ch);ch=null}unread={};pics=[];await db.auth.signOut();me=null;uid=null;go('auth')}
+let amode='in';
+function auth(m){if(m)amode=m;const up=amode=='up';
+ app(`<div class=hero><div class=big>♥</div><h1>SoulSync</h1><p>Where habits meet hearts</p></div><div class="card auth"><h2>${up?'Create your account':'Welcome back'}</h2><p class=hint>${up?'Join SoulSync to meet people who fit your life.':'Log in to continue to SoulSync.'}</p>
+ <div class=f><input id=e type=email placeholder="Email" autocomplete=email></div><div class=f style="margin-top:12px"><input id=p type=password placeholder="${up?'Create a password (6+ characters)':'Password'}" autocomplete="${up?'new-password':'current-password'}"></div>
+ ${up?'<label class=chk><input type=checkbox id=ag><span>I am 18 or older and agree to the <a href=legal.html#terms target=_blank>Terms</a> and <a href=legal.html#privacy target=_blank>Privacy Policy</a>.</span></label>':''}
+ <p id=m></p><button class="btn pri" onclick="sign('${amode}')">${up?'Sign up ♥':'Log in ♥'}</button>
+ <p class=swap>${up?'Already have an account? <a onclick="auth(\'in\')">Log in</a>':'New here? <a onclick="auth(\'up\')">Sign up</a>'}</p></div>`);
+ $('#p').onkeydown=e=>{if(e.key=='Enter')sign(amode)}}
+async function sign(k){const email=$('#e').value.trim(),password=$('#p').value;
+ if(!email||!password)return msg('Enter your email and password.');
+ if(k=='up'){if(!$('#ag').checked)return msg('Please confirm you are 18+ and accept the Terms and Privacy Policy.');
+  const r=await db.auth.signUp({email,password});
+  if(r.error){if(/already/i.test(r.error.message)){msg('You already have an account. Taking you to log in…');return setTimeout(()=>{auth('in');$('#e').value=email},1400)}return msg(r.error.message)}
+  if(!r.data.session)return msg('Check your email to confirm your account, then log in.');
+  return boot()}
+ const r=await db.auth.signInWithPassword({email,password});if(!r.error)return boot();
+ if(/invalid login/i.test(r.error.message)){const{data,error}=await db.rpc('email_exists',{e:email});
+  if(!error&&data===false){msg("You're a first-time user. Please sign up first. Taking you there…");return setTimeout(()=>{auth('up');$('#e').value=email},1600)}
+  return msg(error?'Email or password is not correct. New here? Tap "Sign up" below.':'Wrong password. Please try again.')}
+ msg(r.error.message)}
+async function out(){closeCalls();if(ch){db.removeChannel(ch);ch=null}unread={};pics=[];await db.auth.signOut();me=null;uid=null;amode='in';go('auth')}
 
 function profile(){if(me)pics=[...(me.photos||(me.photo?[me.photo]:[]))];const p=me||{},G=['man','woman','nonbinary'],opt=(id,a,v)=>`<select id=${id}>${a.map(x=>`<option ${x==v?'selected':''}>${x}</option>`).join('')}</select>`;
  const dp=(p.dob||'').split('-'),Y=new Date().getFullYear(),MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
